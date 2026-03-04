@@ -1,0 +1,33 @@
+# ── Python ──────────────────────────────────────
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Secrets — NEVER commit these ─────────────────
+backend/.env
+frontend/.env
+
+# ── Node / Frontend ──────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.svelte-kit/
+
+# ── OS / Editor ──────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ── Railway / Vercel ─────────────────────────────
+.vercel/
+.railway/
