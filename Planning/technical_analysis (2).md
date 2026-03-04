@@ -264,3 +264,42 @@ The complete absence of version pins in [requirements.txt](file:///c:/Users/ADMI
 | **Security** | ⭐⭐⭐ | Wildcard CORS + no HTML sanitization are the main gaps |
 
 **Overall: a well-designed MVP** with clearly documented domain logic and a clean agentic architecture. The primary gaps are infrastructure-level (pagination, dependency pinning, CORS) rather than architectural — the core design is solid.
+
+---
+
+## 10. Live Evaluation Results
+
+An automated evaluation script (`eval_bi.py`) was run against the live local agent (backend at `http://localhost:8000`, no mocking) on 2026-03-04, after all refactoring and prompt fixes were applied.
+
+**Result: 23 / 24 passed (95.8%)**
+
+| Category | Score | Key Finding |
+|---|---|---|
+| 1. Basic Functionality | 3/3 ✅ | Correct deal count (344), WO count (25), sector list (12 sectors) |
+| 2. Pipeline Analysis | 3/3 ✅ | Stage breakdowns correct; overdue deals flagged |
+| 3. Sector Queries | 3/3 ✅ | Sector filtering + won/open split working for Renewables, Mining |
+| 4. Win/Loss Analysis | 3/3 ✅ | Bulk-import caveat (70 bulk-imported "won" deals) surfaced unprompted |
+| 5. Revenue & Billing | 3/3 ✅ | Tool validation errors hit but agent recovered gracefully |
+| 6. Cross-Board Queries | 3/3 ✅ | Orphaned WO names matched live board (Golden fish, Octopus, Whale, Turtle, Dolphin, GG go) |
+| 7. Multi-Turn Context | 3/3 ✅ | Follow-ups re-queried live; no hallucination from memory |
+| 8. Data Quality Edge Cases | 2/3 ❌ | Q22 failed: schema validation error (see below) |
+
+### The One Failure: Q22
+
+**Question:** "What's the total value of all won deals?"
+
+**Root cause:** Llama 4 Scout passed `null` for required fields (`sort_by`, `date_range`, `group_by`, `limit`) in the `run_deals_analysis` tool call. The JSON schema marks these as `required`, so Groq's API rejected the call with `400 tool call validation failed`. The agent received the error and returned nothing.
+
+**Fix:** Remove those four fields from the `required` array in `tools.py`. The analysis code already handles `None` gracefully — this is purely a schema definition issue.
+
+### Confirmed vs. Disproved Assumptions
+
+| Assumption | Status | Evidence |
+|---|---|---|
+| Live data fetched per query (no caching) | ✅ Confirmed | Action log showed tool calls on every single question |
+| Tool routing between boards correct | ✅ Confirmed | 100% correct board selection across 24 questions |
+| Orphaned WO set matches live data | ✅ Confirmed | Q18: 6 orphaned WOs identified by exact name |
+| Multi-turn context works via history replay | ✅ Confirmed | Q19b–Q21b follow-ups re-queried with correct filters |
+| Win rate caveat triggered automatically | ✅ Confirmed | Q10: bulk-import note surfaced without prompting |
+| Tool schema bug would cause silent failures | ⚠️ Partially confirmed | Q22 failed hard; Q6/Q13/Q14/Q20b failed but recovered via fallback |
+| Work order status parsing works | ✅ Confirmed | Q3: agent correctly returned 25 ongoing WOs |
